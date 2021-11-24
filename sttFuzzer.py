@@ -23,17 +23,17 @@ except ImportError:
 
 # Enum of the different types of mutations supported
 class Mutation(Enum):
-    PITCH = "PITCH"
-    SPEED = "SPEED"
-    VOLUME = "VOLUME"
-    LOOP = "LOOP"
+    PITCH = "PITCH"              # changes the pitch
+    SPEED = "SPEED"              # picks a new speed either slower or faster
+    VOLUME = "VOLUME"            # picks a new volume either quieter or louder
+    LOOP = "LOOP"                # plays the seed twice
     CONCAT = "CONCAT"            # takes the seed and adds a ranom seed as the second half
-    SUBSECTION = "SUBSECTION"    # picks a random subsection of the seed from of length at least 1 second
-    CUT_SECTION = "CUT_SECTION"  # removes a section of the clip of a least 1 second in length
-    REARRANGE = "REARRANGE"
-    REMOVE_BELOW_DECIBLE = "REMOVE_BELOW_DECIBLE"
-    WHITE_NOISE = "WHITE_NOISE"
-    REAL_WORLD_NOISE = "REAL_WORLD_NOISE"
+    SUBSECTION = "SUBSECTION"    # picks a random subsection of the seed from of length at least 1/4 of the seed len
+    CUT_SECTION = "CUT_SECTION"  # removes a section of the seed of a least at least 1/4 of the seed len
+    REARRANGE = "REARRANGE"      # moves a section of the seed of at least 1/4 of the seed len
+    REMOVE_BELOW_DECIBLE = "REMOVE_BELOW_DECIBLE"   # removes audio below (-10 through -20)
+    WHITE_NOISE = "WHITE_NOISE"                     # adds white noise to the audio
+    REAL_WORLD_NOISE = "REAL_WORLD_NOISE"           # adds real world noise to the audio
 
 # Output directory constants
 RESULTS_DIR = "gcAudioResults"
@@ -63,6 +63,7 @@ MUTATION_TEXT = "mutantText"
 MUTATION_CONFIDENCE = "mutantConfidence"
 COMMAND = "command"
 SEED_FILE = "seedFile"
+PASSED = "passed"
 
 # --------------------------------------------------------
 
@@ -231,7 +232,7 @@ def createMutant(seedfile):
         # Pick start and end
         # Choose random number between 1 & len - 1
         # Leaves at minimum a second and max length - a second
-        lenOfSection = random.uniform(1, seedDuration - 1)
+        lenOfSection = random.uniform((seedDuration * (1/4)), seedDuration - (seedDuration * (1/4)))
         # Choose random number between 0 & length - length of the cut
         start = random.uniform(0, seedDuration - lenOfSection)
         end = start + lenOfSection
@@ -247,7 +248,7 @@ def createMutant(seedfile):
         # Pick start and end
         # Choose random number between 1 & len - 1
         # Leaves at minimum a second and max length - a second
-        lenOfCut = random.uniform(1, seedDuration - 1)
+        lenOfCut = random.uniform((seedDuration * (1/4)), seedDuration - (seedDuration * (1/4)))
         # Choose random number between 0 & length - length of the cut
         startOfCut = random.uniform(0, seedDuration - lenOfCut)
         endOfCut = startOfCut + lenOfCut
@@ -267,22 +268,28 @@ def createMutant(seedfile):
         # Pick start and end
         # Choose random number between 1 & len - 1
         # Leaves at minimum a second and max length - a second
-        lenOfSection = random.uniform(1, seedDuration - 1)
+        lenOfSection = random.uniform((seedDuration * (1/3)), seedDuration - (seedDuration * (1/3)))
         # Choose random number between 0 & length - length of the cut
-        start = random.uniform(0, seedDuration - lenOfSection)
-        end = start + lenOfSection
 
+        # Add at the front
         if random.randint(1, 2) % 2 == 0:
-            command = "ffmpeg -ss {start} -i {seed} -to {end} -i {seed} -filter_complex \
-            \"[1]atrim=duration={start}[X];[1]atrim=start={end}[Y];[X][Y]concat=n=2:v=0:a=1[B]; \
-            [0][B]concat=n=2:v=0:a=1\" \
+            start = random.uniform(0, seedDuration - lenOfSection - (seedDuration * (1/8)))
+            end = start + lenOfSection
+            command = "ffmpeg -i {seed} -i {seed} -filter_complex \
+            \"[0]atrim={start}:{end}[A]; \
+            [1]atrim=duration={start}[X];[1]atrim=start={end}[Y];[X][Y]concat=n=2:v=0:a=1[B]; \
+            [B][A]concat=n=2:v=0:a=1\" \
             {output} 2> /dev/null".format(
             start = start, seed = seedfile, end = end, output = outputFile)
             mutationDetails = "Start %f, End %f, Length %f, Length of Cut %f, Added to the end" % (start, end, seedDuration, lenOfSection)
+        # Add at the end
         else:
-            command = "ffmpeg -ss {start} -i {seed} -to {end} -i {seed} -filter_complex \
-            \"[1]atrim=duration={start}[X];[1]atrim=start={end}[Y];[X][Y]concat=n=2:v=0:a=1[B]; \
-            [B][0]concat=n=2:v=0:a=1\" \
+            start = random.uniform((seedDuration * (1/8)), seedDuration - lenOfSection)
+            end = start + lenOfSection
+            command = "ffmpeg -i {seed} -i {seed} -filter_complex \
+            \"[0]atrim={start}:{end}[A]; \
+            [1]atrim=duration={start}[X];[1]atrim=start={end}[Y];[X][Y]concat=n=2:v=0:a=1[B]; \
+            [A][B]concat=n=2:v=0:a=1\" \
             {output} 2> /dev/null".format(
             start = start, seed = seedfile, end = end, output = outputFile)
             mutationDetails = "Start %f, End %f, Length %f, Length of Cut %f, Added to the front" % (start, end, seedDuration, lenOfSection)
@@ -415,6 +422,7 @@ def updateStatsSave(success, mutant):
 
     # Save mutation
     mutant[MUTATION] = mutant[MUTATION].name
+    mutant[PASSED] = success
     jsonFile = open("{0}/{1}.json".format(dir + "/" + mutant[MUTATION].lower(), mutant[ID]), "w")
     jsonFile.write(json.dumps(mutant, indent=4))
     jsonFile.close()

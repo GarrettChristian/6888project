@@ -1,0 +1,12 @@
+{
+    "id": "a62bf0ea-3ff1-4b56-a14f-7954cef39a2e",
+    "mutation": "SPEED",
+    "outputFile": "gcAudioResults/output/speed/a62bf0ea-3ff1-4b56-a14f-7954cef39a2e.wav",
+    "mutationDetails": "Speed 0.64",
+    "command": "ffmpeg -i /Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAna/project/6888project/seeds1/61/70970/61-70970-0000.wav -filter:a \"atempo=0.635340364317396\" -vn gcAudioResults/output/speed/a62bf0ea-3ff1-4b56-a14f-7954cef39a2e.wav  2> /dev/null",
+    "seedFile": "/Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAna/project/6888project/seeds1/61/70970/61-70970-0000.wav",
+    "originalText": "young fitz tooth had been commanded to his mother's chamber so soon as he had come out from his converse with the squire",
+    "originalConfidence": -94.33790588378906,
+    "mutantText": "young fitz had been commanded to his mother's chamber so soon as he had come out from his converse with the squire",
+    "mutantConfidence": -94.42984771728516
+}

@@ -1,0 +1,12 @@
+{
+    "id": "6024329a-3036-45d5-9741-e0ea79618991",
+    "mutation": "REARRANGE",
+    "outputFile": "gcAudioResults/output/rearrange/6024329a-3036-45d5-9741-e0ea79618991.wav",
+    "mutationDetails": "Start 2.039686, End 4.566145, Length 6.075000, Length of Cut 2.526459, Added to the front",
+    "command": "ffmpeg -i /Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAna/project/6888project/seeds1/61/70970/61-70970-0000.wav -i /Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAna/project/6888project/seeds1/61/70970/61-70970-0000.wav -filter_complex             \"[0]atrim=2.0396860981198057:4.566145098336309[A];             [1]atrim=duration=2.0396860981198057[X];[1]atrim=start=4.566145098336309[Y];[X][Y]concat=n=2:v=0:a=1[B];             [A][B]concat=n=2:v=0:a=1\"             gcAudioResults/output/rearrange/6024329a-3036-45d5-9741-e0ea79618991.wav 2> /dev/null",
+    "seedFile": "/Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAna/project/6888project/seeds1/61/70970/61-70970-0000.wav",
+    "originalText": "young fitz tooth had been commanded to his mother's chamber so soon as he had come out from his converse with the squire",
+    "originalConfidence": -94.33790588378906,
+    "mutantText": "mother's chamber so soon as he had come out from his young fitzoothes been commanded to converse with the squire",
+    "mutantConfidence": -122.70327758789062
+}

@@ -1,0 +1,12 @@
+{
+    "id": "19f648e9-9178-4148-a754-619dd30411c8",
+    "mutation": "SUBSECTION",
+    "outputFile": "gcAudioResults/output/subsection/19f648e9-9178-4148-a754-619dd30411c8.wav",
+    "mutationDetails": "Start 2.397642, End 6.051660, Length 6.075000, Length of Subsection 3.654018",
+    "command": "ffmpeg -ss 2.397641521440595 -i /Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAna/project/6888project/seeds1/61/70970/61-70970-0000.wav -to 6.051659632408526 -c copy gcAudioResults/output/subsection/19f648e9-9178-4148-a754-619dd30411c8.wav 2> /dev/null",
+    "seedFile": "/Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAna/project/6888project/seeds1/61/70970/61-70970-0000.wav",
+    "originalText": "young fitz tooth had been commanded to his mother's chamber so soon as he had come out from his converse with the squire",
+    "originalConfidence": -94.33790588378906,
+    "mutantText": "chambers so soon as he had come out from his converse with the squire",
+    "mutantConfidence": -47.93522644042969
+}

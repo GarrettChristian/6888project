@@ -1,0 +1,12 @@
+{
+    "id": "d251cfa6-4f89-42e6-a4d0-533c3cfc1b01",
+    "mutation": "WHITE_NOISE",
+    "outputFile": "gcAudioResults/output/white_noise/d251cfa6-4f89-42e6-a4d0-533c3cfc1b01.wav",
+    "mutationDetails": "Sample Rate 32017, Amplitude 0.10",
+    "command": "ffmpeg -i /Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAna/project/6888project/seeds1/61/70970/61-70970-0000.wav -filter_complex             \"anoisesrc=d=6.075:c=white:r=32017:a=0.1[A];             [A]volume=.1[B];             [0][B]amix=inputs=2:duration=shortest,volume=2\"             gcAudioResults/output/white_noise/d251cfa6-4f89-42e6-a4d0-533c3cfc1b01.wav 2> /dev/null",
+    "seedFile": "/Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAna/project/6888project/seeds1/61/70970/61-70970-0000.wav",
+    "originalText": "young fitz tooth had been commanded to his mother's chamber so soon as he had come out from his converse with the squire",
+    "originalConfidence": -94.33790588378906,
+    "mutantText": "he economises sheneral oriole",
+    "mutantConfidence": -197.66171264648438
+}
