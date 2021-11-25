@@ -6,9 +6,10 @@ import argparse
 from pathlib import Path
 import json
 import wave
-import nltk
+from Levenshtein import distance as lev
 import sys
 import numpy as np
+import threading
 
 import scipy.io.wavfile as wav
 
@@ -43,14 +44,20 @@ FAILURE_DIR = RESULTS_DIR + "/failure"
 
 # Global seeds and model
 seeds = []
-ds = None
+modelLocation = ""
+scorerLocation = ""
 mutantsEnabled = []
+realWorldNoise = []
+results = []
 
 # Global results
 numMutations = 0
 failures = 0
 mutationCount = {}
 mutationFailureCount = {}
+saveCount = 0
+saveAll = False
+threads = 0
 
 # Output json dictionary constants
 ID = "id"
@@ -79,11 +86,17 @@ def printMutants(mutants):
 # --------------------------------------------------------
 
 def setup():
-    global ds
+    global results
     global seeds
     global mutationCount
     global mutationFailureCount
     global mutantsEnabled
+    global saveCount
+    global saveAll
+    global realWorldNoise
+    global threads
+    global modelLocation
+    global scorerLocation
 
     # Parse the arguments
     parser = argparse.ArgumentParser(description='Running Garrett Christian\'s Audio Fuzzing Tool')
@@ -93,8 +106,16 @@ def setup():
                         help='Path to the external scorer file')
     parser.add_argument('--seeds', required=True,
                         help='Path to the seed files, NOTE these seeds must be .wav files')
+    parser.add_argument('--realWorldNoise', required=True,
+                        help='Path to the real world noise files, NOTE these files must be .wav files')
+    parser.add_argument('--threads', required=False, default=1, type=int,
+                        help='Path to the real world noise files, NOTE these files must be .wav files')
     parser.add_argument('--mutations', required=False,
                         help='Mutations to perform comma seperated example: PITCH,SPEED')
+    parser.add_argument('--save', required=False, default=10, type=int,
+                        help='Amount to save of failed runs')
+    parser.add_argument('--saveAll', required=False, action='store_true', default=False,
+                        help='Saves all ouput')
     args = parser.parse_args()
 
     print("\n--------------------------------------------------------")
@@ -112,29 +133,24 @@ def setup():
     print()
 
     # Set up the model
+    modelLocation = args.model
     print('Loading model from file {}'.format(args.model))
-    model_load_start = timer()
-    # sphinx-doc: python_ref_model_start
-    ds = Model(args.model)
-    # sphinx-doc: python_ref_model_stop
-    model_load_end = timer() - model_load_start
-    print('Loaded model in {:.3}s.'.format(model_load_end))
-    print()
 
     # Set up the scorer
+    scorerLocation = args.scorer
     print('Loading scorer from files {}'.format(args.scorer))
-    scorer_load_start = timer()
-    ds.enableExternalScorer(args.scorer)
-    scorer_load_end = timer() - scorer_load_start
-    print('Loaded scorer in {:.3}s.'.format(scorer_load_end))
-    print()
 
     # Get the file names of the seeds
     print("Seed Directory provided: {0}".format(args.seeds))
     for path in Path(args.seeds).rglob('*.wav'):
         seeds.append(str(path))
-
     print("seeds provided {0}".format(len(seeds)))
+
+    # Get the file names of the realWorldNoise
+    print("Seed Directory provided: {0}".format(args.realWorldNoise))
+    for path in Path(args.realWorldNoise).rglob('*.wav'):
+        realWorldNoise.append(str(path))
+    print("Real world noise provided {0}".format(len(realWorldNoise)))
     print()
 
     # Get mutations to use
@@ -155,11 +171,25 @@ def setup():
     
     print("Mutations in use: ", end='')
     printMutants(mutantsEnabled)
+    print()
+
+    # Save 
+    saveAll = args.saveAll
+    saveCount = args.save
+    if (saveAll):
+        print("Saving all results")
+    else:
+        print("Saving the first %d error results for each mutation" % (saveCount))
+    print()
+    
+    # Get num threads
+    threads = args.threads
+    print("Starting %d threads" % (threads))
+    for i in range(threads):
+        results.append(None)
 
     # Set up the results
     for mutant in mutantsEnabled:
-        mutationCount[mutant.name] = 0
-        mutationFailureCount[mutant.name] = 0
         makeDirSuccess = SUCCESS_DIR + "/" + mutant.name.lower()
         makeDirFailure = FAILURE_DIR + "/" + mutant.name.lower()
         makeDirOutput = AUDIO_OUTPUT_DIR + "/" + mutant.name.lower()
@@ -170,7 +200,7 @@ def setup():
 # --------------------------------------------------------
 # MODEL SPECIFIC METHODS
 
-def runModel(audioFile):
+def runModel(audioFile, ds):
     fin = wave.open(audioFile, 'rb')
     audio = np.frombuffer(fin.readframes(fin.getnframes()), np.int16)
 
@@ -228,7 +258,6 @@ def createMutant(seedfile):
         (sourceRate, sourceSig) = wav.read(seedfile)
         seedDuration = len(sourceSig) / float(sourceRate)
 
-        print(seedDuration)
         # Pick start and end
         # Choose random number between 1 & len - 1
         # Leaves at minimum a second and max length - a second
@@ -264,7 +293,6 @@ def createMutant(seedfile):
         (sourceRate, sourceSig) = wav.read(seedfile)
         seedDuration = len(sourceSig) / float(sourceRate)
 
-        print(seedDuration)
         # Pick start and end
         # Choose random number between 1 & len - 1
         # Leaves at minimum a second and max length - a second
@@ -329,7 +357,7 @@ def createMutant(seedfile):
         (sourceRate, sourceSig) = wav.read(seedfile)
         seedDuration = len(sourceSig) / float(sourceRate)
 
-        realNoise = "yt-audio/0SdAVK79lg.wav"
+        realNoise = random.choice(realWorldNoise)
 
         command = "ffmpeg -i {realNoise} -to {seedDuration} -i {seed} -filter_complex \
             \"[0:a]volume=.1[A]; \
@@ -345,11 +373,14 @@ def createMutant(seedfile):
     os.system(command)
     # print()
 
-    return {ID: id, MUTATION: mutation, 
+    return {
+        ID: id, 
+        MUTATION: mutation, 
         OUTPUT_FILE: outputFile, 
         MUTATION_DETAILS: mutationDetails, 
         COMMAND: command, 
-        SEED_FILE: seedfile}
+        SEED_FILE: seedfile
+        }
 
 # --------------------------------------------------------
 
@@ -395,7 +426,7 @@ def oracle(originalText, mutantText, mutation):
         return originalWords.issubset(newWords)
 
     elif (Mutation.REAL_WORLD_NOISE == mutation or Mutation.WHITE_NOISE == mutation):
-        edit_distance = nltk.edit_distance(originalText, mutantText)
+        edit_distance = lev(originalText, mutantText)
         return edit_distance < 10
 
     else:
@@ -404,84 +435,130 @@ def oracle(originalText, mutantText, mutation):
 
 # --------------------------------------------------------
 
-def updateStatsSave(success, mutant):
-    global failures
-    global numMutations
+def fuzz(event, threadId, mutex):
+    global modelLocation
+    global scorerLocation
+    global saveAll
+    global saveCount
+    global results
+    global mutantsEnabled
 
-    # Update the stats
-    numMutations += 1
+    model_load_start = timer()
+    ds = Model(modelLocation)
+    model_load_end = timer() - model_load_start
 
-    dir = SUCCESS_DIR
-
-    mutationCount[mutant[MUTATION].name] = mutationCount[mutant[MUTATION].name] + 1
-
-    if (not success):
-        failures += 1
-        dir = FAILURE_DIR
-        mutationFailureCount[mutant[MUTATION].name] = mutationFailureCount[mutant[MUTATION].name] + 1
-
-    # Save mutation
-    mutant[MUTATION] = mutant[MUTATION].name
-    mutant[PASSED] = success
-    jsonFile = open("{0}/{1}.json".format(dir + "/" + mutant[MUTATION].lower(), mutant[ID]), "w")
-    jsonFile.write(json.dumps(mutant, indent=4))
-    jsonFile.close()
-
-# --------------------------------------------------------
-
-def fuzz():
-    print("\n--------------------------------------------------------")
-    print('Running Fuzz')
-    fuzz_start = timer()
-
-    # Select a random seed to mutate
-    randomSeed = random.choice(seeds)
-
-    # Get the resulting text of that seed
-    start = timer()
-    originalText = runModel(randomSeed)
-    end = timer()
-    print("%-20s : %4.2f | %s" % ("Original Text", end - start, originalText[0]))
-
-    # Create a mutant from that seed
-    start = timer()
-    mutant = createMutant(randomSeed)
-    end = timer()
-    print("%-20s : %4.2f | %s %s" % ("Mutant Created", end - start, mutant[MUTATION], mutant[MUTATION_DETAILS]))
-
-    # Run model on mutant
-    start = timer()
-    mutantText = runModel(mutant[OUTPUT_FILE])
-    end = timer()
-    print("%-20s : %4.2f | %s" % ("Mutant Text", end - start, mutantText[0]))
-
-    success = oracle(originalText[0], mutantText[0], mutant[MUTATION])
-
-    mutant[ORIGINAL_TEXT] = originalText[0]
-    mutant[ORIGINAL_CONFIDENCE] = originalText[1]
-    mutant[MUTATION_TEXT] = mutantText[0]
-    mutant[MUTATION_CONFIDENCE] = mutantText[1]
-
-    updateStatsSave(success, mutant)
-
-    fuzz_end = timer() - fuzz_start
-
-    # Print final Results
+    scorer_load_start = timer()
+    ds.enableExternalScorer(scorerLocation)
+    scorer_load_end = timer() - scorer_load_start
+    
+    mutex.acquire()
+    print("Thread %d" % (threadId))
+    print('Loaded model in {:.3}s.'.format(model_load_end))
+    print('Loaded scorer in {:.3}s.'.format(scorer_load_end))
     print()
-    print("%-20s: %s" % ("Id", mutant[ID]))
-    print("%-20s: %4.2f" % ("Time", fuzz_end))
-    print("%-20s: %s" % ("Mutation", mutant[MUTATION]))
-    print("%-20s: %s" % ("Mutation Details", mutant[MUTATION_DETAILS]))
-    print("%-20s: %s" % ("Original Text", mutant[ORIGINAL_TEXT]))
-    print("%-20s: %s" % ("Mutated Text", mutant[MUTATION_TEXT]))
-    print("%-20s: %s" % ("Original Confidence", mutant[ORIGINAL_CONFIDENCE]))
-    print("%-20s: %s" % ("Mutant Confidence", mutant[MUTATION_CONFIDENCE]))
-    print("%-20s: %s" % ("Source", mutant[SEED_FILE]))
-    print("%-20s: PASSED" % ("Oracle")) if success else print("%-20s: FAILED" % ("Oracle"))
+    mutex.release()
+
+    mutationCount = {}
+    mutationFailureCount = {}
+    failures = 0
+    numMutations = 0
+
+    for mutant in mutantsEnabled:
+        mutationCount[mutant.name] = 0
+        mutationFailureCount[mutant.name] = 0
+
+    while not event.is_set():
+        fuzz_start = timer()
+
+        # Select a random seed to mutate
+        randomSeed = random.choice(seeds)
+
+        # Get the resulting text of that seed
+        start = timer()
+        originalText = runModel(randomSeed, ds)
+        end = timer()
+
+        # Create a mutant from that seed
+        start = timer()
+        mutant = createMutant(randomSeed)
+        end = timer()
+
+        # Run model on mutant
+        start = timer()
+        mutantText = runModel(mutant[OUTPUT_FILE], ds)
+        end = timer()
+
+        success = oracle(originalText[0], mutantText[0], mutant[MUTATION])
+
+        mutant[ORIGINAL_TEXT] = originalText[0]
+        mutant[ORIGINAL_CONFIDENCE] = originalText[1]
+        mutant[MUTATION_TEXT] = mutantText[0]
+        mutant[MUTATION_CONFIDENCE] = mutantText[1]
+
+        # Update stats
+        numMutations += 1
+
+        dir = SUCCESS_DIR
+
+        mutationCount[mutant[MUTATION].name] = mutationCount[mutant[MUTATION].name] + 1
+
+        if (not success):
+            failures += 1
+            dir = FAILURE_DIR
+            mutationFailureCount[mutant[MUTATION].name] = mutationFailureCount[mutant[MUTATION].name] + 1
+
+        # Save mutation
+        if ((mutationCount[mutant[MUTATION].name] >= saveCount and not success) 
+            or saveAll):
+            mutant[MUTATION] = mutant[MUTATION].name
+            mutant[PASSED] = success
+            jsonFile = open("{0}/{1}.json".format(dir + "/" + mutant[MUTATION].lower(), mutant[ID]), "w")
+            jsonFile.write(json.dumps(mutant, indent=4))
+            jsonFile.close()
+        else:
+            os.remove(mutant[OUTPUT_FILE])
+
+        fuzz_end = timer() - fuzz_start
+
+        # Print final Results
+        mutex.acquire()
+        print("\n--------------------------------------------------------")
+        print("Thread %d" % (threadId))
+        print("%-20s: %s" % ("Id", mutant[ID]))
+        print("%-20s: %4.2f" % ("Time", fuzz_end))
+        print("%-20s : %4.2f | %s %s" % ("Mutant Created", end - start, mutant[MUTATION], mutant[MUTATION_DETAILS]))
+        print("%-20s : %4.2f | %s" % ("Original Text", end - start, originalText[0]))
+        print("%-20s : %4.2f | %s" % ("Mutant Text", end - start, mutantText[0]))
+        print("%-20s: %s" % ("Original Confidence", mutant[ORIGINAL_CONFIDENCE]))
+        print("%-20s: %s" % ("Mutant Confidence", mutant[MUTATION_CONFIDENCE]))
+        print("%-20s: %s" % ("Source", mutant[SEED_FILE]))
+        print("%-20s: PASSED" % ("Oracle")) if success else print("%-20s: FAILED" % ("Oracle"))
+        mutex.release()
+
+    mutex.acquire()
+    results[threadId] = (numMutations, failures, mutationCount, mutationFailureCount)
+    mutex.release()
 
 # --------------------------------------------------------
 
-def collectFinalResults(time):
+def collectFinalResults(time, results):
+
+    # Aggregate results
+    numMutations = 0
+    failures = 0
+    mutationCount = {}
+    mutationFailureCount = {}
+
+    for mutant in mutantsEnabled:
+        mutationCount[mutant.name] = 0
+        mutationFailureCount[mutant.name] = 0
+
+    for r in results:
+        numMutations += r[0]
+        failures += r[1]
+        for mutant in mutantsEnabled:
+            mutationCount[mutant.name] += r[2][mutant.name]
+            mutationFailureCount[mutant.name] += r[3][mutant.name]
     
     print("\n\n--------------------------------------------------------\n")
     print("Stopped")
@@ -523,18 +600,32 @@ def collectFinalResults(time):
 # --------------------------------------------------------
 
 def main():
+    global results
+
     print('Starting Garrett Christian\'s DeepSpeech Audio Fuzzing Tool')
     setup()
     run_start = timer()
+    mutex = threading.Lock()
 
     try:
-        print("Starting Mutations")
-        while True:
-            fuzz()
-        
+        event = threading.Event()
+        threadList = []
+        for i in range(threads):
+            thread = threading.Thread(target=fuzz, args=(event, i, mutex, ))
+            threadList.append(thread)
+            thread.start()
+        event.wait()  # wait forever but without blocking KeyboardInterrupt exceptions
+            
     except KeyboardInterrupt:
+        print("Ctrl+C pressed...")
+        event.set()  # inform the child thread that it should exit
+        print("Waiting for other processes to conclude then collecting results")
+        for thread in threadList:
+            thread.join()
+        print(results)
+
         run_end = timer()
-        collectFinalResults(run_end - run_start)
+        collectFinalResults(run_end - run_start, results)
 
 if __name__ == '__main__':
     main()

@@ -4,6 +4,7 @@
 model=/Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAna/project/deepspeech-0.9.3-models.pbmm
 scorer=/Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAna/project/deepspeech-0.9.3-models.scorer
 seeds=/Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAna/project/6888project/test-clean
+realWorldNoise=/Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAna/project/6888project/yt-audio
 # seeds=/Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAna/project/6888project/seeds1
 
 # Accepted Mutations: PITCH,SPEED,VOLUME,LOOP,CONCAT,SUBSECTION,CUT_SECTION,REARRANGE,REMOVE_BELOW_DECIBLE,WHITE_NOISE,REAL_WORLD_NOISE
@@ -12,7 +13,7 @@ seeds=/Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAna/project
 mutations=LOOP
 
 # Run the tool 
-python3 sttFuzzer.py --model $model --scorer $scorer --seeds $seeds
+python3 sttFuzzer.py --model $model --scorer $scorer --seeds $seeds --realWorldNoise $realWorldNoise --threads 2 --save 0
 
 
 # Run with optional
