@@ -82,6 +82,14 @@ def printMutants(mutants):
             print("%s, " % (mutants[i].name), end='')
     print()
 
+# --------------------------------------------------------
+
+def format_seconds_to_hhmmss(seconds):
+    hours = seconds // (60*60)
+    seconds %= (60*60)
+    minutes = seconds // 60
+    seconds %= 60
+    return "%02i:%02i:%02i" % (hours, minutes, seconds)
 
 # --------------------------------------------------------
 
@@ -474,19 +482,19 @@ def fuzz(event, threadId, mutex):
         randomSeed = random.choice(seeds)
 
         # Get the resulting text of that seed
-        start = timer()
+        startModel = timer()
         originalText = runModel(randomSeed, ds)
-        end = timer()
+        endModel = timer()
 
         # Create a mutant from that seed
-        start = timer()
+        startCreateMutant = timer()
         mutant = createMutant(randomSeed)
-        end = timer()
+        endCreateMutant = timer()
 
         # Run model on mutant
-        start = timer()
+        startModelMutant = timer()
         mutantText = runModel(mutant[OUTPUT_FILE], ds)
-        end = timer()
+        endModelMutant = timer()
 
         success = oracle(originalText[0], mutantText[0], mutant[MUTATION])
 
@@ -516,23 +524,42 @@ def fuzz(event, threadId, mutex):
             jsonFile.write(json.dumps(mutant, indent=4))
             jsonFile.close()
         else:
+            mutant[MUTATION] = mutant[MUTATION].name
             os.remove(mutant[OUTPUT_FILE])
 
         fuzz_end = timer() - fuzz_start
 
+        resultText = "\n--------------------------------------------------------\n"
+        resultText += "Thread %d\n" % (threadId)
+        resultText += "%-20s: %s\n" % ("Id", mutant[ID])
+        resultText += "%-20s: %s\n" % ("Total time", format_seconds_to_hhmmss(fuzz_end))
+        resultText += "%-20s: %d\n" % ("Current count", numMutations)
+        resultText += "%-20s: time: %s | %s %s\n" % ("Mutant Created", format_seconds_to_hhmmss(endModel - startModel), mutant[MUTATION], mutant[MUTATION_DETAILS])
+        resultText += "%-20s: time: %s | %s\n" % ("Original Text", format_seconds_to_hhmmss(endCreateMutant - startCreateMutant), originalText[0])
+        resultText += "%-20s: time: %s | %s\n" % ("Mutant Text", format_seconds_to_hhmmss(endModelMutant - startModelMutant), mutantText[0])
+        resultText += "%-20s: %s\n" % ("Original Confidence", mutant[ORIGINAL_CONFIDENCE])
+        resultText += "%-20s: %s\n" % ("Mutant Confidence", mutant[MUTATION_CONFIDENCE])
+        resultText += "%-20s: %s\n" % ("Source", mutant[SEED_FILE])
+        if success:
+            resultText += "%-20s: PASSED\n" % ("Oracle")
+        else: 
+            resultText += "%-20s: FAILED\n" % ("Oracle")
+
         # Print final Results
         mutex.acquire()
-        print("\n--------------------------------------------------------")
-        print("Thread %d" % (threadId))
-        print("%-20s: %s" % ("Id", mutant[ID]))
-        print("%-20s: %4.2f" % ("Time", fuzz_end))
-        print("%-20s : %4.2f | %s %s" % ("Mutant Created", end - start, mutant[MUTATION], mutant[MUTATION_DETAILS]))
-        print("%-20s : %4.2f | %s" % ("Original Text", end - start, originalText[0]))
-        print("%-20s : %4.2f | %s" % ("Mutant Text", end - start, mutantText[0]))
-        print("%-20s: %s" % ("Original Confidence", mutant[ORIGINAL_CONFIDENCE]))
-        print("%-20s: %s" % ("Mutant Confidence", mutant[MUTATION_CONFIDENCE]))
-        print("%-20s: %s" % ("Source", mutant[SEED_FILE]))
-        print("%-20s: PASSED" % ("Oracle")) if success else print("%-20s: FAILED" % ("Oracle"))
+        print(resultText)
+        # print("\n--------------------------------------------------------")
+        # print("Thread %d" % (threadId))
+        # print("%-20s: %s" % ("Id", mutant[ID]))
+        # print("%-20s: %s" % ("Total time", format_seconds_to_hhmmss(fuzz_end)))
+        # print("%-20s: %d" % ("Current count", numMutations))
+        # print("%-20s: time: %s | %s %s" % ("Mutant Created", format_seconds_to_hhmmss(endModel - startModel), mutant[MUTATION], mutant[MUTATION_DETAILS]))
+        # print("%-20s: time: %s | %s" % ("Original Text", format_seconds_to_hhmmss(endCreateMutant - startCreateMutant), originalText[0]))
+        # print("%-20s: time: %s | %s" % ("Mutant Text", format_seconds_to_hhmmss(endModelMutant - startModelMutant), mutantText[0]))
+        # print("%-20s: %s" % ("Original Confidence", mutant[ORIGINAL_CONFIDENCE]))
+        # print("%-20s: %s" % ("Mutant Confidence", mutant[MUTATION_CONFIDENCE]))
+        # print("%-20s: %s" % ("Source", mutant[SEED_FILE]))
+        # print("%-20s: PASSED" % ("Oracle")) if success else print("%-20s: FAILED" % ("Oracle"))
         mutex.release()
 
     mutex.acquire()
@@ -562,7 +589,7 @@ def collectFinalResults(time, results):
     
     print("\n\n--------------------------------------------------------\n")
     print("Stopped")
-    print("Ran for: %.2f" % (time))
+    print("Ran for: %s" % (format_seconds_to_hhmmss(time)))
     print("\n--------------------------------------------------------\n\n")
     print("Final Results:")
 
@@ -606,6 +633,8 @@ def main():
     setup()
     run_start = timer()
     mutex = threading.Lock()
+    print("\n--------------------------------------------------------")
+    print("Starting threads and perfoming setup\n")
 
     try:
         event = threading.Event()
@@ -617,12 +646,14 @@ def main():
         event.wait()  # wait forever but without blocking KeyboardInterrupt exceptions
             
     except KeyboardInterrupt:
-        print("Ctrl+C pressed...")
         event.set()  # inform the child thread that it should exit
-        print("Waiting for other processes to conclude then collecting results")
+        mutex.acquire()
+        print("\n--------------------------------------------------------")
+        print("Ctrl+C pressed...")
+        print("Waiting for other processes to conclude then collecting results\n")
+        mutex.release()
         for thread in threadList:
             thread.join()
-        print(results)
 
         run_end = timer()
         collectFinalResults(run_end - run_start, results)
