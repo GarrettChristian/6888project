@@ -10,10 +10,10 @@ realWorldNoise=/Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAn
 # Accepted Mutations: PITCH,SPEED,VOLUME,LOOP,CONCAT,SUBSECTION,CUT_SECTION,REARRANGE,REMOVE_BELOW_DECIBLE,WHITE_NOISE,REAL_WORLD_NOISE
 
 # Optional 
-mutations=LOOP
+mutations=SPEED
 
 # Run the tool 
-python3 sttFuzzer.py --model $model --scorer $scorer --seeds $seeds --realWorldNoise $realWorldNoise --threads 2 --save 0
+python3 sttFuzzer.py --model $model --scorer $scorer --seeds $seeds --realWorldNoise $realWorldNoise --threads 5 --save 1
 
 
 # Run with optional

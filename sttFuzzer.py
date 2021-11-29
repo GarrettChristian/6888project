@@ -155,7 +155,7 @@ def setup():
     print("seeds provided {0}".format(len(seeds)))
 
     # Get the file names of the realWorldNoise
-    print("Seed Directory provided: {0}".format(args.realWorldNoise))
+    print("Real World Audio Seed Directory provided: {0}".format(args.realWorldNoise))
     for path in Path(args.realWorldNoise).rglob('*.wav'):
         realWorldNoise.append(str(path))
     print("Real world noise provided {0}".format(len(realWorldNoise)))
@@ -516,7 +516,7 @@ def fuzz(event, threadId, mutex):
             mutationFailureCount[mutant[MUTATION].name] = mutationFailureCount[mutant[MUTATION].name] + 1
 
         # Save mutation
-        if ((mutationCount[mutant[MUTATION].name] >= saveCount and not success) 
+        if ((mutationCount[mutant[MUTATION].name] <= saveCount and not success) 
             or saveAll):
             mutant[MUTATION] = mutant[MUTATION].name
             mutant[PASSED] = success
