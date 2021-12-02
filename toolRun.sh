@@ -8,7 +8,7 @@ realWorldNoise=/Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAn
 # seeds=/Users/garrettchristian/DocumentsDesktop/uva21/classes/softwareAna/project/6888project/seeds1
 
 # Optional mutations
-# Accepted Mutations: PITCH,SPEED,VOLUME,LOOP,CONCAT,SUBSECTION,CUT_SECTION,REARRANGE,REMOVE_BELOW_DECIBLE,WHITE_NOISE,REAL_WORLD_NOISE
+# Accepted Mutations: PITCH,SPEED,VOLUME,LOOP,CONCAT,SUBSECTION,CUT_SECTION,REARRANGE,REMOVE_BELOW_DECIBEL,WHITE_NOISE,REAL_WORLD_NOISE
 mutations=SPEED
 
 # Run the tool 

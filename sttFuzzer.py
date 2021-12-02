@@ -589,7 +589,7 @@ def collectFinalResults(time, results):
     print("\t| %-20s: | %5d |" % ("Seeds Provided", len(seeds)))
     print("\t| %-20s: | %5d |" % ("Mutations Attempted", numMutations))
     print("\t| %-20s: | %5d |" % ("Failures", failures))
-    print("\t| %-20s: | %4.2d%% |" % ("Percent of failures", percentFailures))
+    print("\t| %-20s: | %4.2d%% |" % ("Percent of Failures", percentFailures))
     print("\t|%s|%s|\n" % ("-" * 23, "-" * 7))
 
     print("Mutation Results:")

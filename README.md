@@ -56,7 +56,7 @@ Audio fuzzing and mutation tool to test mozilla's deepspeech speech to text mode
 #### Optional Arguments
 - --mutations [mutations to attempt in a comma separated list] (default all mutations)
   
-  Accepted mutations: PITCH,SPEED,VOLUME,LOOP,CONCAT,SUBSECTION,CUT_SECTION,REARRANGE,REMOVE_BELOW_DECIBLE,WHITE_NOISE,REAL_WORLD_NOISE
+  Accepted mutations: PITCH,SPEED,VOLUME,LOOP,CONCAT,SUBSECTION,CUT_SECTION,REARRANGE,REMOVE_BELOW_DECIBEL,WHITE_NOISE,REAL_WORLD_NOISE
 
 - --threads [number of threads] (default 1 thread)
 - --save [number of mutation for every type each thread should save] (default is 10)
