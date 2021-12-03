@@ -17,11 +17,6 @@ from timeit import default_timer as timer
 from deepspeech import Model, version
 from enum import Enum
 
-try:
-    from shhlex import quote
-except ImportError:
-    from pipes import quote
-
 # Enum of the different types of mutations supported
 class Mutation(Enum):
     PITCH = "PITCH"              # changes the pitch
@@ -32,7 +27,7 @@ class Mutation(Enum):
     SUBSECTION = "SUBSECTION"    # picks a random subsection of the seed from of length at least 1/4 of the seed len
     CUT_SECTION = "CUT_SECTION"  # removes a section of the seed of a least at least 1/4 of the seed len
     REARRANGE = "REARRANGE"      # moves a section of the seed of at least 1/4 of the seed len
-    REMOVE_BELOW_DECIBLE = "REMOVE_BELOW_DECIBLE"   # removes audio below (-10 through -20)
+    REMOVE_BELOW_DECIBLE = "REMOVE_BELOW_DECIBEL"   # removes audio below (-10 through -20)
     WHITE_NOISE = "WHITE_NOISE"                     # adds white noise to the audio
     REAL_WORLD_NOISE = "REAL_WORLD_NOISE"           # adds real world noise to the audio
 
@@ -372,6 +367,7 @@ def createMutant(seedfile):
             [1][A]amix=inputs=2:duration=shortest,volume=2\" \
             {output} 2> /dev/null".format(
             seed = seedfile, seedDuration = seedDuration, realNoise = realNoise, output = outputFile)
+        mutationDetails = "Added %s" % (realNoise)
 
     else:
         print('Mutant not supported')
