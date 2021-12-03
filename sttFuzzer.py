@@ -69,6 +69,13 @@ PASSED = "passed"
 
 # --------------------------------------------------------
 
+"""
+printMutants
+
+Helper to print mutant enum values
+
+@param mutants list of enum values to print
+"""
 def printMutants(mutants):
     for i in range(len(mutants)):
         if len(mutants) == i + 1:
@@ -79,15 +86,28 @@ def printMutants(mutants):
 
 # --------------------------------------------------------
 
-def format_seconds_to_hhmmss(seconds):
-    hours = seconds // (60*60)
+"""
+formatSecondsToHhmmss
+
+Helper to convert seconds to hours minutes and seconds
+
+@param seconds
+@return formatted string of hhmmss
+"""
+def formatSecondsToHhmmss(seconds):
+    hours = seconds / (60*60)
     seconds %= (60*60)
-    minutes = seconds // 60
+    minutes = seconds / 60
     seconds %= 60
     return "%02i:%02i:%02i" % (hours, minutes, seconds)
 
 # --------------------------------------------------------
 
+"""
+setup
+
+Reads in the arguments from the command line and sets up all global arguments
+"""
 def setup():
     global results
     global seeds
@@ -176,7 +196,7 @@ def setup():
     printMutants(mutantsEnabled)
     print()
 
-    # Save 
+    # How much of the results should be saved
     saveAll = args.saveAll
     saveCount = args.save
     if (saveAll):
@@ -185,13 +205,13 @@ def setup():
         print("Saving the first %d error results for each mutation" % (saveCount))
     print()
     
-    # Get num threads
+    # Get number of threads to run
     threads = args.threads
     print("Starting %d threads" % (threads))
     for i in range(threads):
         results.append(None)
 
-    # Set up the results
+    # Set up the results directories
     for mutant in mutantsEnabled:
         makeDirSuccess = SUCCESS_DIR + "/" + mutant.name.lower()
         makeDirFailure = FAILURE_DIR + "/" + mutant.name.lower()
@@ -201,8 +221,16 @@ def setup():
         os.makedirs(makeDirOutput, exist_ok=True)
 
 # --------------------------------------------------------
-# MODEL SPECIFIC METHODS
 
+"""
+runModel
+
+Runs the provided model on the provided audio
+
+@param audioFile string path to the audio
+@param ds deepspeech model to use on the audio
+@return a tuple with the text and model confidence 
+"""
 def runModel(audioFile, ds):
     fin = wave.open(audioFile, 'rb')
     audio = np.frombuffer(fin.readframes(fin.getnframes()), np.int16)
@@ -217,6 +245,14 @@ def runModel(audioFile, ds):
 
 # --------------------------------------------------------
 
+"""
+createMutant
+
+Randomly selects a mutant from the enabled mutants then uses FFMPEG to create a mutant audio
+
+@param seedfile string path to the seed audio to create the mutant from
+@return a dictionary with all the new mutants information
+"""
 def createMutant(seedfile):
     #  Select random Mutation
     mutation = random.choice(list(mutantsEnabled))
@@ -388,6 +424,16 @@ def createMutant(seedfile):
 
 # --------------------------------------------------------
 
+"""
+oracle
+
+Determines if the mutant passes the oracle based on the mutation used
+
+@param originalText string from the original audio
+@param mutantText string from the mutant audio
+@param mutation that was used to create the mutant text
+@return pass or fail based on the oracle 
+"""
 def oracle(originalText, mutantText, mutation):
 
     if (Mutation.PITCH == mutation 
@@ -439,6 +485,18 @@ def oracle(originalText, mutantText, mutation):
 
 # --------------------------------------------------------
 
+"""
+fuzz
+
+The function that all the threads are running
+Sets up the model, scorer and results, then runs the fuzz until terminated
+Fuzz: get original text, create mutant audio, get mutant text, compare with oracle, update and print results
+Once terminated the thread saves it's individual results to a shared global array
+
+@param event that will tell the thread when to conclude
+@param threadId int specifier of the thread
+@param mutex to protect the output
+"""
 def fuzz(event, threadId, mutex):
     global modelLocation
     global scorerLocation
@@ -447,6 +505,7 @@ def fuzz(event, threadId, mutex):
     global results
     global mutantsEnabled
 
+    # Set up this threads model & scorer
     model_load_start = timer()
     ds = Model(modelLocation)
     model_load_end = timer() - model_load_start
@@ -462,6 +521,7 @@ def fuzz(event, threadId, mutex):
     print()
     mutex.release()
 
+    # Set up the result counters for this thread
     mutationCount = {}
     mutationFailureCount = {}
     failures = 0
@@ -471,6 +531,7 @@ def fuzz(event, threadId, mutex):
         mutationCount[mutant.name] = 0
         mutationFailureCount[mutant.name] = 0
 
+    # Attempt different mutations until the process is killed
     while not event.is_set():
         fuzz_start = timer()
 
@@ -492,6 +553,7 @@ def fuzz(event, threadId, mutex):
         mutantText = runModel(mutant[OUTPUT_FILE], ds)
         endModelMutant = timer()
 
+        # Check if there was an error
         success = oracle(originalText[0], mutantText[0], mutant[MUTATION])
 
         mutant[ORIGINAL_TEXT] = originalText[0]
@@ -501,17 +563,16 @@ def fuzz(event, threadId, mutex):
 
         # Update stats
         numMutations += 1
-
-        dir = SUCCESS_DIR
-
         mutationCount[mutant[MUTATION].name] = mutationCount[mutant[MUTATION].name] + 1
 
+        # update failure stats and select the location to save
+        dir = SUCCESS_DIR
         if (not success):
             failures += 1
             dir = FAILURE_DIR
             mutationFailureCount[mutant[MUTATION].name] = mutationFailureCount[mutant[MUTATION].name] + 1
 
-        # Save mutation
+        # Save mutation (only if enabled)
         if ((mutationCount[mutant[MUTATION].name] <= saveCount and not success) 
             or saveAll):
             mutant[MUTATION] = mutant[MUTATION].name
@@ -525,14 +586,15 @@ def fuzz(event, threadId, mutex):
 
         fuzz_end = timer() - fuzz_start
 
+        # Prepare the final results
         resultText = "\n--------------------------------------------------------\n"
         resultText += "Thread %d\n" % (threadId)
         resultText += "%-20s: %s\n" % ("Id", mutant[ID])
-        resultText += "%-20s: %s\n" % ("Total time", format_seconds_to_hhmmss(fuzz_end))
+        resultText += "%-20s: %s\n" % ("Total time", formatSecondsToHhmmss(fuzz_end))
         resultText += "%-20s: %d\n" % ("Current count", numMutations)
-        resultText += "%-20s: time: %s | %s %s\n" % ("Mutant Created", format_seconds_to_hhmmss(endCreateMutant - startCreateMutant), mutant[MUTATION], mutant[MUTATION_DETAILS])
-        resultText += "%-20s: time: %s | %s\n" % ("Original Text", format_seconds_to_hhmmss(endModel - startModel), originalText[0])
-        resultText += "%-20s: time: %s | %s\n" % ("Mutant Text", format_seconds_to_hhmmss(endModelMutant - startModelMutant), mutantText[0])
+        resultText += "%-20s: time: %s | %s %s\n" % ("Mutant Created", formatSecondsToHhmmss(endCreateMutant - startCreateMutant), mutant[MUTATION], mutant[MUTATION_DETAILS])
+        resultText += "%-20s: time: %s | %s\n" % ("Original Text", formatSecondsToHhmmss(endModel - startModel), originalText[0])
+        resultText += "%-20s: time: %s | %s\n" % ("Mutant Text", formatSecondsToHhmmss(endModelMutant - startModelMutant), mutantText[0])
         resultText += "%-20s: %s\n" % ("Original Confidence", mutant[ORIGINAL_CONFIDENCE])
         resultText += "%-20s: %s\n" % ("Mutant Confidence", mutant[MUTATION_CONFIDENCE])
         resultText += "%-20s: %s\n" % ("Source", mutant[SEED_FILE])
@@ -546,12 +608,22 @@ def fuzz(event, threadId, mutex):
         print(resultText)
         mutex.release()
 
+    # Once the process has been signaled to end collect all results in the global results array
     mutex.acquire()
     results[threadId] = (numMutations, failures, mutationCount, mutationFailureCount)
     mutex.release()
 
 # --------------------------------------------------------
 
+"""
+collectFinalResults
+
+Aggregates the final results from the threads, prints the final metrics,
+and saves them to an output file
+
+@param time float of how much time the 
+@param results array of individual thread fuzzing metrics 
+"""
 def collectFinalResults(time, results):
 
     # Aggregate results
@@ -571,9 +643,10 @@ def collectFinalResults(time, results):
             mutationCount[mutant.name] += r[2][mutant.name]
             mutationFailureCount[mutant.name] += r[3][mutant.name]
     
+    # Print time
     print("\n\n--------------------------------------------------------\n")
     print("Stopped")
-    print("Ran for: %s" % (format_seconds_to_hhmmss(time)))
+    print("Ran for: %s" % (formatSecondsToHhmmss(time)))
     print("\n--------------------------------------------------------\n\n")
     print("Final Results:")
 
@@ -581,6 +654,7 @@ def collectFinalResults(time, results):
     if (numMutations > 0):
         percentFailures = (failures / numMutations) * 100
 
+    # Print general information
     print("\t|%s|%s|" % ("-" * 23, "-" * 7))
     print("\t| %-20s: | %5d |" % ("Seeds Provided", len(seeds)))
     print("\t| %-20s: | %5d |" % ("Mutations Attempted", numMutations))
@@ -588,6 +662,7 @@ def collectFinalResults(time, results):
     print("\t| %-20s: | %4.2d%% |" % ("Percent of Failures", percentFailures))
     print("\t|%s|%s|\n" % ("-" * 23, "-" * 7))
 
+    # Print mutant information
     print("Mutation Results:")
 
     print("\t|------------------------------------------------|")
@@ -603,6 +678,7 @@ def collectFinalResults(time, results):
 
     print("\n\n")
 
+    # Write out the final results
     finalResults = {"failures": failures, "mutations" : numMutations, "percentFailures": percentFailures, "mutantCount": mutationCount, "mutantFailCount": mutationFailureCount}
     jsonFile = open("{0}/finalResults.json".format(RESULTS_DIR), "w")
     jsonFile.write(json.dumps(finalResults, indent=4))
@@ -610,9 +686,16 @@ def collectFinalResults(time, results):
 
 # --------------------------------------------------------
 
+"""
+main
+
+Runs the set up, starts all the threads to perform their fuzzing, 
+waits for the kill signal, joins the threads, then outputs the results
+"""
 def main():
     global results
 
+    # Collect arguments set up mutex
     print('Starting Garrett Christian\'s DeepSpeech Audio Fuzzing Tool')
     setup()
     run_start = timer()
@@ -620,6 +703,7 @@ def main():
     print("\n--------------------------------------------------------")
     print("Starting threads and perfoming setup\n")
 
+    # Start the threads providing them with an event to be triggered when the process is signaled to end
     try:
         event = threading.Event()
         threadList = []
@@ -641,6 +725,7 @@ def main():
 
         run_end = timer()
         collectFinalResults(run_end - run_start, results)
+
 
 if __name__ == '__main__':
     main()

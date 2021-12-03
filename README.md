@@ -45,6 +45,7 @@ Audio fuzzing and mutation tool to test mozilla's deepspeech speech to text mode
 ### Running the Tool
 - modify toolRun.sh with your specific parameters
 - bash toolRun.sh
+- NOTE everytime you run the tool the output directory will be reset
 
 ### Arguments 
 #### Required Arguments 
