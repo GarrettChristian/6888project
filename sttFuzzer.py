@@ -66,6 +66,7 @@ ORIGINAL_TEXT = "originalText"
 ORIGINAL_CONFIDENCE = "originalConfidence"
 MUTATION_TEXT = "mutantText"
 MUTATION_CONFIDENCE = "mutantConfidence"
+CONFIDENCE_PERCENT_CHANGE = "confidencePercentChange"
 COMMAND = "command"
 SEED_FILE = "seedFile"
 PASSED = "passed"
@@ -537,10 +538,11 @@ Fuzz: get original text, create mutant audio, get mutant text, compare with orac
 Once terminated the thread saves it's individual results to a shared global array
 
 @param event that will tell the thread when to conclude
+@param toolStartTime when the tool started
 @param threadId int specifier of the thread
 @param mutex to protect the output
 """
-def fuzz(event, threadId, mutex):
+def fuzz(event, toolStartTime, threadId, mutex):
     global modelLocation
     global scorerLocation
     global saveAll
@@ -567,12 +569,14 @@ def fuzz(event, threadId, mutex):
     # Set up the result counters for this thread
     mutationCount = {}
     mutationFailureCount = {}
+    mutationConfidence = {}
     failures = 0
     numMutations = 0
 
     for mutant in mutantsEnabled:
         mutationCount[mutant.name] = 0
         mutationFailureCount[mutant.name] = 0
+        mutationConfidence[mutant.name] = 0
 
     # Attempt different mutations until the process is killed
     while not event.is_set():
@@ -608,6 +612,11 @@ def fuzz(event, threadId, mutex):
         numMutations += 1
         mutationCount[mutant[MUTATION].name] = mutationCount[mutant[MUTATION].name] + 1
 
+        # Update confidence percent change
+        confidencePercentChange = ((mutant[MUTATION_CONFIDENCE] - mutant[ORIGINAL_CONFIDENCE]) / mutant[ORIGINAL_CONFIDENCE]) * 100
+        mutationConfidence[mutant[MUTATION].name] = mutationConfidence[mutant[MUTATION].name] + confidencePercentChange
+        mutant[CONFIDENCE_PERCENT_CHANGE] = confidencePercentChange
+
         # update failure stats and select the location to save
         dir = SUCCESS_DIR
         if (not success):
@@ -628,18 +637,21 @@ def fuzz(event, threadId, mutex):
             os.remove(mutant[OUTPUT_FILE])
 
         fuzz_end = timer() - fuzz_start
+        runningTime = timer() - toolStartTime
 
         # Prepare the final results
         resultText = "\n--------------------------------------------------------\n"
         resultText += "Thread %d\n" % (threadId)
+        resultText += "%-20s: %s\n" % ("Running time", formatSecondsToHhmmss(runningTime))
         resultText += "%-20s: %s\n" % ("Id", mutant[ID])
-        resultText += "%-20s: %s\n" % ("Total time", formatSecondsToHhmmss(fuzz_end))
+        resultText += "%-20s: %s\n" % ("Fuzz time", formatSecondsToHhmmss(fuzz_end))
         resultText += "%-20s: %d\n" % ("Current count", numMutations)
         resultText += "%-20s: time: %s | %s %s\n" % ("Mutant Created", formatSecondsToHhmmss(endCreateMutant - startCreateMutant), mutant[MUTATION], mutant[MUTATION_DETAILS])
         resultText += "%-20s: time: %s | %s\n" % ("Original Text", formatSecondsToHhmmss(endModel - startModel), originalText[0])
         resultText += "%-20s: time: %s | %s\n" % ("Mutant Text", formatSecondsToHhmmss(endModelMutant - startModelMutant), mutantText[0])
         resultText += "%-20s: %s\n" % ("Original Confidence", mutant[ORIGINAL_CONFIDENCE])
         resultText += "%-20s: %s\n" % ("Mutant Confidence", mutant[MUTATION_CONFIDENCE])
+        resultText += "%-20s: %.2f%%\n" % ("Confidence % Change", confidencePercentChange)
         resultText += "%-20s: %s\n" % ("Source", mutant[SEED_FILE])
         if success:
             resultText += "%-20s: PASSED\n" % ("Oracle")
@@ -653,7 +665,7 @@ def fuzz(event, threadId, mutex):
 
     # Once the process has been signaled to end collect all results in the global results array
     mutex.acquire()
-    results[threadId] = (numMutations, failures, mutationCount, mutationFailureCount)
+    results[threadId] = (numMutations, failures, mutationCount, mutationFailureCount, mutationConfidence)
     mutex.release()
 
 # --------------------------------------------------------
@@ -672,12 +684,15 @@ def collectFinalResults(time, results):
     # Aggregate results
     numMutations = 0
     failures = 0
+    confidence = 0
     mutationCount = {}
     mutationFailureCount = {}
+    mutationConfidence = {}
 
     for mutant in mutantsEnabled:
         mutationCount[mutant.name] = 0
         mutationFailureCount[mutant.name] = 0
+        mutationConfidence[mutant.name] = 0
 
     for r in results:
         numMutations += r[0]
@@ -685,6 +700,8 @@ def collectFinalResults(time, results):
         for mutant in mutantsEnabled:
             mutationCount[mutant.name] += r[2][mutant.name]
             mutationFailureCount[mutant.name] += r[3][mutant.name]
+            mutationConfidence[mutant.name] += r[4][mutant.name]
+            confidence += r[4][mutant.name]
     
     # Print time
     print("\n\n--------------------------------------------------------\n")
@@ -694,30 +711,35 @@ def collectFinalResults(time, results):
     print("Final Results:")
 
     percentFailures = 0
+    confidenceChange = 0
     if (numMutations > 0):
         percentFailures = (failures / numMutations) * 100
+        confidenceChange = (confidence / numMutations)
 
     # Print general information
-    print("\t|%s|%s|" % ("-" * 23, "-" * 7))
-    print("\t| %-20s: | %5d |" % ("Seeds Provided", len(seeds)))
-    print("\t| %-20s: | %5d |" % ("Mutations Attempted", numMutations))
-    print("\t| %-20s: | %5d |" % ("Failures", failures))
-    print("\t| %-20s: | %4.2d%% |" % ("Percent of Failures", percentFailures))
-    print("\t|%s|%s|\n" % ("-" * 23, "-" * 7))
+    print("\t|%s|%s|" % ("-" * 26, "-" * 10))
+    print("\t| %-23s: | %8d |" % ("Seeds Provided", len(seeds)))
+    print("\t| %-23s: | %8d |" % ("Mutations Attempted", numMutations))
+    print("\t| %-23s: | %8d |" % ("Failures", failures))
+    print("\t| %-23s: | %7.2d%% |" % ("Percent of Failures", percentFailures))
+    print("\t| %-23s: | %7.2f%% |" % ("Avg of Confidence Delta", confidenceChange))
+    print("\t|%s|%s|\n" % ("-" * 26, "-" * 10))
 
     # Print mutant information
     print("Mutation Results:")
 
-    print("\t|------------------------------------------------|")
-    print("\t| %-20s | %6s | %6s | %5s |" % ("Mutant Name", "Errors", "Count", "%"))
-    print("\t|----------------------|--------|--------|-------|")
+    print("\t|%s|" % ("-" * 74))
+    print("\t| %-20s | %6s | %6s | %5s | %23s |" % ("Mutant Name", "Errors", "Count", "%", "Avg of Confidence Delta"))
+    print("\t|%s|%s|%s|%s|%s|" % ("-" * 22, "-" * 8, "-" * 8, "-" * 7, "-" * 25))
     for mutant in mutantsEnabled:
         percentMutant = 0
+        confidenceChangeMutant = 0
         if (mutationCount[mutant.name] > 0):
             percentMutant = (mutationFailureCount[mutant.name] / mutationCount[mutant.name]) * 100
+            confidenceChangeMutant = mutationConfidence[mutant.name] / mutationCount[mutant.name]
         
-        print("\t| %-20s | %6d | %6d | %4.2d%% |" % (mutant.name, mutationFailureCount[mutant.name], mutationCount[mutant.name], percentMutant))
-    print("\t|------------------------------------------------|")
+        print("\t| %-20s | %6d | %6d | %4.2d%% | %22.2f%% |" % (mutant.name, mutationFailureCount[mutant.name], mutationCount[mutant.name], percentMutant, confidenceChangeMutant))
+    print("\t|%s|" % ("-" * 74))
 
     print("\n\n")
 
@@ -751,7 +773,7 @@ def main():
         event = threading.Event()
         threadList = []
         for i in range(threads):
-            thread = threading.Thread(target=fuzz, args=(event, i, mutex, ))
+            thread = threading.Thread(target=fuzz, args=(event, run_start, i, mutex, ))
             threadList.append(thread)
             thread.start()
         event.wait()  # wait forever but without blocking KeyboardInterrupt exceptions

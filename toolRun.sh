@@ -12,7 +12,7 @@ realWorldNoise=yt-audio
 mutations=TREBLE,BASE
 
 # Run the tool 
-python3 sttFuzzer.py --model $model --scorer $scorer --seeds $seeds --realWorldNoise $realWorldNoise --threads 5 --save 1
+python3 sttFuzzer.py --model $model --scorer $scorer --seeds $seeds --realWorldNoise $realWorldNoise --threads 4 --save 1
 
 # Save all version
 # python3 sttFuzzer.py --model $model --scorer $scorer --seeds $seeds --realWorldNoise $realWorldNoise --threads 5 --saveAll
