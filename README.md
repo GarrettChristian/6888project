@@ -57,7 +57,7 @@ Audio fuzzing and mutation tool to test mozilla's deepspeech speech to text mode
 #### Optional Arguments
 - --mutations [mutations to attempt in a comma separated list] (default all mutations)
   
-  Accepted mutations: PITCH,SPEED,VOLUME,LOOP,CONCAT,SUBSECTION,CUT_SECTION,REARRANGE,REMOVE_BELOW_DECIBEL,WHITE_NOISE,REAL_WORLD_NOISE
+  Accepted mutations: PITCH,SPEED,VOLUME,LOOP,CONCAT,SUBSECTION,CUT_SECTION,REARRANGE,REMOVE_BELOW_DECIBEL,WHITE_NOISE,REAL_WORLD_NOISE,VIBRATO,TREBLE,BASE
 
 - --threads [number of threads] (default 1 thread)
 - --save [number of mutation for every type each thread should save] (default is 10)
@@ -74,6 +74,8 @@ Audio fuzzing and mutation tool to test mozilla's deepspeech speech to text mode
 - seeds1 - a sample seed used for testing purposes
 - test-clean - wav seed files from openSLR
 - yt-audio - wav randomly selected 10 second youtube clips from google's labeled AudioDataset
+- deepspeech-0.9.3-models.pbmm deep speech model
+- deepspeech-0.9.3-models.scorer deep speech scorer
 
 ### Files Included in Scripts
 - scripts/balanced_train_segments.csv used by googleAudioSources to randomly select real world noise from 

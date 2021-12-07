@@ -30,6 +30,9 @@ class Mutation(Enum):
     REMOVE_BELOW_DECIBLE = "REMOVE_BELOW_DECIBEL"   # removes audio below (-10 through -20)
     WHITE_NOISE = "WHITE_NOISE"                     # adds white noise to the audio
     REAL_WORLD_NOISE = "REAL_WORLD_NOISE"           # adds real world noise to the audio
+    VIBRATO = "VIBRATO"                             # vibrato: Sinusoidal phase modulation
+    BASE = "BASE"                                   # Boost or cut the bass (lower) frequencies of the audio 
+    TREBLE = "TREBLE"                               # Boost or cut treble (upper) frequencies of the audio
 
 # Output directory constants
 RESULTS_DIR = "gcAudioResults"
@@ -265,15 +268,19 @@ def createMutant(seedfile):
     # print('Mutant Selected %s %s' % (mutation.name, seedfile))
 
     if (Mutation.PITCH == mutation):
-        command = "ffmpeg -i {seed} -af \"asetrate=44100*0.9\" -y {output} 2> /dev/null".format(
-            seed = seedfile, output = outputFile)
+        # Set the output sample rate. Default is 44100 Hz.
+        mutiplier = random.uniform(.8, 1)
+        rate = 44100 * mutiplier
+        command = "ffmpeg -i {seed} -af \"asetrate={rate}\" -y {output} 2> /dev/null".format(
+            seed = seedfile, rate = rate, output = outputFile)
+        mutationDetails = "Rate %.2f" % (rate)
 
     elif (Mutation.SPEED == mutation):
         speed = random.uniform(.5, .8)
         if random.randint(1, 2) % 2 == 0:
             speed = random.uniform(1.2, 1.5)
         
-        command = "ffmpeg -i {seed} -filter:a \"atempo={speed}\" -vn {output}  2> /dev/null".format(
+        command = "ffmpeg -i {seed} -filter:a \"atempo={speed}\" -vn {output} 2> /dev/null".format(
             seed = seedfile, speed = speed, output = outputFile)
         mutationDetails = "Speed %.2f" % (speed)
 
@@ -282,7 +289,7 @@ def createMutant(seedfile):
         if random.randint(1, 2) % 2 == 0:
             volume = random.uniform(1.2, 1.7)
         
-        command = "ffmpeg -i {seed} -af \"volume={volume}\" {output}  2> /dev/null".format(
+        command = "ffmpeg -i {seed} -af \"volume={volume}\" {output} 2> /dev/null".format(
             seed = seedfile, volume = volume, output = outputFile)
         mutationDetails = "Volume %.2f" % (volume)
 
@@ -405,13 +412,43 @@ def createMutant(seedfile):
             seed = seedfile, seedDuration = seedDuration, realNoise = realNoise, output = outputFile)
         mutationDetails = "Added %s" % (realNoise)
 
+    elif (Mutation.TREBLE == mutation 
+        or Mutation.BASE == mutation):
+        
+        # Boost or cut -20 (for a large cut) to +20 (for a large boost)
+        gain = 0
+        type = "cut"
+        if random.randint(1, 2) % 2 == 0:
+            gain = random.randint(-25, -18)
+        else:
+            gain = random.randint(18, 25)
+            type = "boost"
+        if (Mutation.TREBLE == mutation):
+            command = "ffmpeg -i {seed} -af \"treble=g={gain}\" {output} 2> /dev/null".format(
+                seed = seedfile, gain = gain, output = outputFile)
+        else:
+            command = "ffmpeg -i {seed} -af \"lowshelf=g={gain}\" {output} 2> /dev/null".format(
+                seed = seedfile, gain = gain, output = outputFile)
+        mutationDetails = "Gain %d (%s)" % (gain, type)
+
+    elif (Mutation.VIBRATO == mutation):
+        # Modulation frequency in Hertz. Range is 0.1 - 20000.0. Default value is 5.0 Hz.
+        frequency = random.uniform(5, 8)
+        # Depth of modulation as a percentage. Range is 0.0 - 1.0. Default value is 0.5.
+        depth = random.uniform(.5, .8)
+
+        command = "ffmpeg -i {seed} -filter_complex \"vibrato=f={frequency}:d={depth}\" {output} 2> /dev/null".format(
+            seed = seedfile, frequency = frequency, depth = depth, output = outputFile)
+        mutationDetails = "Frequency %.2f, Depth %.2f" % (frequency, depth)
+
     else:
         print('Mutant not supported')
 
-    # print(command)
-    # print()
-    os.system(command)
-    # print()
+
+    if (command != ""):
+        os.system(command)
+    else:
+        outputFile = seedfile
 
     return {
         ID: id, 
@@ -438,7 +475,9 @@ def oracle(originalText, mutantText, mutation):
 
     if (Mutation.PITCH == mutation 
         or Mutation.SPEED == mutation 
-        or Mutation.VOLUME == mutation):
+        or Mutation.VOLUME == mutation
+        or Mutation.TREBLE == mutation
+        or Mutation.BASE == mutation):
         return originalText == mutantText
 
     elif (Mutation.LOOP == mutation):
@@ -458,7 +497,8 @@ def oracle(originalText, mutantText, mutation):
     elif (Mutation.CUT_SECTION == mutation 
         or Mutation.SUBSECTION == mutation 
         or Mutation.REMOVE_BELOW_DECIBLE == mutation
-        or Mutation.REARRANGE == mutation):
+        or Mutation.REARRANGE == mutation
+        or Mutation.VIBRATO == mutation):
         # All new words contained in the old words with allowed error
         originalWords = set(originalText.split())
         newWords = set(mutantText.split())
@@ -467,7 +507,10 @@ def oracle(originalText, mutantText, mutation):
         for newWord in newWords:
             if newWord not in originalWords:
                 errors += 1
-        # Allow error of one word
+        
+        # Allow error of two words for REARRANGE one for the rest
+        if (Mutation.REARRANGE == mutation):
+            return errors <= 2
         return errors <= 1
 
     elif (Mutation.CONCAT == mutation):
