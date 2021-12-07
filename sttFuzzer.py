@@ -613,7 +613,7 @@ def fuzz(event, toolStartTime, threadId, mutex):
         mutationCount[mutant[MUTATION].name] = mutationCount[mutant[MUTATION].name] + 1
 
         # Update confidence percent change
-        confidencePercentChange = ((mutant[MUTATION_CONFIDENCE] - mutant[ORIGINAL_CONFIDENCE]) / mutant[ORIGINAL_CONFIDENCE]) * 100
+        confidencePercentChange = ((mutant[MUTATION_CONFIDENCE] - mutant[ORIGINAL_CONFIDENCE]) / abs(mutant[ORIGINAL_CONFIDENCE])) * 100
         mutationConfidence[mutant[MUTATION].name] = mutationConfidence[mutant[MUTATION].name] + confidencePercentChange
         mutant[CONFIDENCE_PERCENT_CHANGE] = confidencePercentChange
 
