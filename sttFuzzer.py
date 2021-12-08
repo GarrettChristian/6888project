@@ -27,7 +27,7 @@ class Mutation(Enum):
     SUBSECTION = "SUBSECTION"    # picks a random subsection of the seed from of length at least 1/4 of the seed len
     CUT_SECTION = "CUT_SECTION"  # removes a section of the seed of a least at least 1/4 of the seed len
     REARRANGE = "REARRANGE"      # moves a section of the seed of at least 1/4 of the seed len
-    REMOVE_BELOW_DECIBLE = "REMOVE_BELOW_DECIBEL"   # removes audio below (-10 through -20)
+    REMOVE_BELOW_DECIBEL = "REMOVE_BELOW_DECIBEL"   # removes audio below (-10 through -20)
     WHITE_NOISE = "WHITE_NOISE"                     # adds white noise to the audio
     REAL_WORLD_NOISE = "REAL_WORLD_NOISE"           # adds real world noise to the audio
     VIBRATO = "VIBRATO"                             # vibrato: Sinusoidal phase modulation
@@ -376,7 +376,7 @@ def createMutant(seedfile):
             seed = seedfile, seed2 = secondSeed, output = outputFile)
         mutationDetails = "Combined with %s" % (secondSeed)
 
-    elif (Mutation.REMOVE_BELOW_DECIBLE == mutation):
+    elif (Mutation.REMOVE_BELOW_DECIBEL == mutation):
         belowDb = random.randint(-20, -10)
         command =  "ffmpeg -i {seed} -af silenceremove=stop_periods=-1:stop_duration=1:stop_threshold={below}dB \
             {output} 2> /dev/null".format(
@@ -497,7 +497,7 @@ def oracle(originalText, mutantText, mutation):
 
     elif (Mutation.CUT_SECTION == mutation 
         or Mutation.SUBSECTION == mutation 
-        or Mutation.REMOVE_BELOW_DECIBLE == mutation
+        or Mutation.REMOVE_BELOW_DECIBEL == mutation
         or Mutation.REARRANGE == mutation
         or Mutation.VIBRATO == mutation):
         # All new words contained in the old words with allowed error
