@@ -797,6 +797,7 @@ def collectFinalResults(time, results):
             mutationConfidence[mutant[0].name] = mutationConfidence[mutant[0].name] / mutationCount[mutant[0].name]
             mutationTimeChange[mutant[0].name] = mutationTimeChange[mutant[0].name] / mutationCount[mutant[0].name]
             avgOgTime[mutant[0].name] = avgOgTime[mutant[0].name] / mutationCount[mutant[0].name]
+            avgMutantTime[mutant[0].name] = avgMutantTime[mutant[0].name] / mutationCount[mutant[0].name]
 
         
         print("\t| %-20s | %6d | %6d | %4.2d%% | %20.2f%% | %14.2f%% | %17s | %15s |" % (mutant[0].name, 
