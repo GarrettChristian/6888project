@@ -1,0 +1,17 @@
+{
+    "id": "c94bcad1-dd32-4155-9335-5a3d5e1e59af",
+    "mutation": "BASE",
+    "outputFile": "gcAudioResults/output/base/c94bcad1-dd32-4155-9335-5a3d5e1e59af.wav",
+    "mutationDetails": "Gain -25 (cut)",
+    "command": "ffmpeg -i seeds1/61/70970/61-70970-0000.wav -af \"lowshelf=g=-25\" gcAudioResults/output/base/c94bcad1-dd32-4155-9335-5a3d5e1e59af.wav 2> /dev/null",
+    "seedFile": "seeds1/61/70970/61-70970-0000.wav",
+    "originalText": "young fitz tooth had been commanded to his mother's chamber so soon as he had come out from his converse with the squire",
+    "originalConfidence": -94.33790588378906,
+    "mutantText": "young fit tooth had been commanded to his mother's chamber so soon as he had come out from his converse with the squire",
+    "mutantConfidence": -94.74905395507812,
+    "confidencePercentChange": -0.4358248865472366,
+    "timePercentChange": -10.779366145730103,
+    "originalTime": 2.4034609409999996,
+    "mutantTime": 2.1443830859999995,
+    "passed": false
+}

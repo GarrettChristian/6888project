@@ -1,0 +1,17 @@
+{
+    "id": "4a45b99a-a072-4a61-89b1-15b03985ed12",
+    "mutation": "VIBRATO",
+    "outputFile": "gcAudioResults/output/vibrato/4a45b99a-a072-4a61-89b1-15b03985ed12.wav",
+    "mutationDetails": "Frequency 5.91, Depth 0.56",
+    "command": "ffmpeg -i seeds1/61/70970/61-70970-0000.wav -filter_complex \"vibrato=f=5.9132941694582435:d=0.5638475179745438\" gcAudioResults/output/vibrato/4a45b99a-a072-4a61-89b1-15b03985ed12.wav 2> /dev/null",
+    "seedFile": "seeds1/61/70970/61-70970-0000.wav",
+    "originalText": "young fitz tooth had been commanded to his mother's chamber so soon as he had come out from his converse with the squire",
+    "originalConfidence": -94.33790588378906,
+    "mutantText": "young fit youth had been commanded to his mother's chamber so soon as he had come out from his converse with the squire",
+    "mutantConfidence": -91.112060546875,
+    "confidencePercentChange": 3.4194582831718217,
+    "timePercentChange": -8.80046789420606,
+    "originalTime": 2.7218956409999997,
+    "mutantTime": 2.4823560890000005,
+    "passed": false
+}

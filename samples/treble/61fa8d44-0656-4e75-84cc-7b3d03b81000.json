@@ -1,0 +1,17 @@
+{
+    "id": "61fa8d44-0656-4e75-84cc-7b3d03b81000",
+    "mutation": "TREBLE",
+    "outputFile": "gcAudioResults/output/treble/61fa8d44-0656-4e75-84cc-7b3d03b81000.wav",
+    "mutationDetails": "Gain -24 (cut)",
+    "command": "ffmpeg -i seeds1/61/70970/61-70970-0000.wav -af \"treble=g=-24\" gcAudioResults/output/treble/61fa8d44-0656-4e75-84cc-7b3d03b81000.wav 2> /dev/null",
+    "seedFile": "seeds1/61/70970/61-70970-0000.wav",
+    "originalText": "young fitz tooth had been commanded to his mother's chamber so soon as he had come out from his converse with the squire",
+    "originalConfidence": -94.33790588378906,
+    "mutantText": "young fit both had been commanded to his mother's chamber so soon as he had come out from his converse with the squire",
+    "mutantConfidence": -91.03347778320312,
+    "confidencePercentChange": 3.5027575285130084,
+    "timePercentChange": 16.130720677511874,
+    "originalTime": 2.2181653700000012,
+    "mutantTime": 2.575971429999999,
+    "passed": false
+}
