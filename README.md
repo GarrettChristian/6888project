@@ -4,7 +4,7 @@ Garrett Christian
 ---
 ## Description
 
-Audio fuzzing and mutation tool to test mozilla's deepspeech speech to text model created for my 6888 final project.
+Audio fuzzing and mutation tool to test mozilla's deepspeech speech to text model. Created for my final project in Software Analysis CS 6888 with the University of Virginia.
 
 ---
 
@@ -12,22 +12,25 @@ Audio fuzzing and mutation tool to test mozilla's deepspeech speech to text mode
 
 ### System Requirements
 - ffmpeg
+  - brew install ffmpeg (macOS)
+  - sudo apt install ffmpeg (linux)
 - python3
 - GCC
 - cuda 10.1 (if using gpu enhancements for the model)
 - cudnn 7.6 (if using gpu enhancements for the model)
 
 
-### Set up Steps for General CPU Machine (validated on macOS)
+### Set up Steps for General CPU Machine (Validated on macOS)
 - pip3 install virtualenv
 - virtualenv -p python3 $HOME/tmp/deepspeech-gpu-venv/
 - source $HOME/tmp/deepspeech-gpu-venv/bin/activate
 - pip3 install deepspeech
 - pip3 install python-Levenshtein
 - pip3 install scipy
+- brew install ffmpeg
 
 
-### Set up Steps on the UVA GPU Server
+### Set up Steps on the UVA GPU Server (gpusrv11)
 - module load cudnn-7.6
 - module load cuda-toolkit-10.1
 - module load python3
@@ -43,8 +46,10 @@ Audio fuzzing and mutation tool to test mozilla's deepspeech speech to text mode
 - test-clean seeds in wav format in zip file https://drive.google.com/file/d/1AG6ihO3g4YQEbvnYRHP3Dr3l__oIuX87/view?usp=sharing
 - yt-audio real world noise seeds used in wav format in zip file https://drive.google.com/file/d/1SRmAEKw-SxFHnavM0u9S223Q6pdCdyQS/view?usp=sharing
 
-### Get the Model and Scorer
+### Get the DeepSpeech Model and Scorer
 - https://github.com/mozilla/DeepSpeech/releases/tag/v0.9.3
+  - deepspeech-0.9.3-models.pbmm
+  - deepspeech-0.9.3-models.scorer
 
 ---
 
