@@ -18,7 +18,8 @@ Audio fuzzing and mutation tool to test mozilla's deepspeech speech to text mode
 - cudnn 7.6 (if using gpu enhancements for the model)
 
 
-### Set up Steps for General CPU Machine
+### Set up Steps for General CPU Machine (validated on macOS)
+- pip3 install virtualenv
 - virtualenv -p python3 $HOME/tmp/deepspeech-gpu-venv/
 - source $HOME/tmp/deepspeech-gpu-venv/bin/activate
 - pip3 install deepspeech
@@ -37,6 +38,13 @@ Audio fuzzing and mutation tool to test mozilla's deepspeech speech to text mode
 - pip3 install deepspeech-gpu
 - pip3 install python-Levenshtein
 - pip3 install scipy
+
+### Get seeds (or create them yourself see scripts below)
+- test-clean seeds in wav format in zip file https://drive.google.com/file/d/1AG6ihO3g4YQEbvnYRHP3Dr3l__oIuX87/view?usp=sharing
+- yt-audio real world noise seeds used in wav format in zip file https://drive.google.com/file/d/1SRmAEKw-SxFHnavM0u9S223Q6pdCdyQS/view?usp=sharing
+
+### Get the Model and Scorer
+- https://github.com/mozilla/DeepSpeech/releases/tag/v0.9.3
 
 ---
 
@@ -86,12 +94,6 @@ Audio fuzzing and mutation tool to test mozilla's deepspeech speech to text mode
 - scripts/modules.sh a script that included all of the UVA dependencies 
 - scripts/multithreaded.py a test script for the multithreading python approach used
 - scripts/ontology.json used by googleAudioSources to map the names of the ids 
-
-### Links to the Audio Sources too Large for Github
-- test-clean seeds in wav format https://drive.google.com/drive/folders/11THScoJtaE-w370J-KxF-k4_kwd7cKzy?usp=sharing
-- test-clean seeds in wav format in zip file https://drive.google.com/file/d/1AG6ihO3g4YQEbvnYRHP3Dr3l__oIuX87/view?usp=sharing
-- yt-audio real world noise seeds used in wav format https://drive.google.com/drive/folders/1uIOVvOIBS8flEE3Qed8PZlmJWvASkdkE?usp=sharing
-- yt-audio real world noise seeds used in wav format in zip file https://drive.google.com/file/d/1SRmAEKw-SxFHnavM0u9S223Q6pdCdyQS/view?usp=sharing
 
 ### Other Relevant Links
 - Deepspeech documentation https://deepspeech.readthedocs.io/en/r0.9/
