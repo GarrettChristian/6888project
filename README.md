@@ -12,8 +12,6 @@ Audio fuzzing and mutation tool to test mozilla's deepspeech speech to text mode
 
 ### System Requirements
 - ffmpeg
-  - brew install ffmpeg (macOS)
-  - sudo apt install ffmpeg (linux)
 - python3
 - GCC
 - cuda 10.1 (if using gpu enhancements for the model)
@@ -27,7 +25,9 @@ Audio fuzzing and mutation tool to test mozilla's deepspeech speech to text mode
 - pip3 install deepspeech
 - pip3 install python-Levenshtein
 - pip3 install scipy
-- brew install ffmpeg
+- brew install ffmpeg (macOS) or sudo apt install ffmpeg (linux)
+- curl -LO https://github.com/mozilla/DeepSpeech/releases/download/v0.9.3/deepspeech-0.9.3-models.pbmm
+- curl -LO https://github.com/mozilla/DeepSpeech/releases/download/v0.9.3/deepspeech-0.9.3-models.scorer
 
 
 ### Set up Steps on the UVA GPU Server (gpusrv11)
@@ -41,8 +41,10 @@ Audio fuzzing and mutation tool to test mozilla's deepspeech speech to text mode
 - pip3 install deepspeech-gpu
 - pip3 install python-Levenshtein
 - pip3 install scipy
+- curl -LO https://github.com/mozilla/DeepSpeech/releases/download/v0.9.3/deepspeech-0.9.3-models.pbmm
+- curl -LO https://github.com/mozilla/DeepSpeech/releases/download/v0.9.3/deepspeech-0.9.3-models.scorer
 
-### Get seeds (or create them yourself see scripts below)
+### Get Seeds, Input and Real World (or see scripts below to create fresh versions)
 - test-clean seeds in wav format in zip file https://drive.google.com/file/d/1AG6ihO3g4YQEbvnYRHP3Dr3l__oIuX87/view?usp=sharing
 - yt-audio real world noise seeds used in wav format in zip file https://drive.google.com/file/d/1SRmAEKw-SxFHnavM0u9S223Q6pdCdyQS/view?usp=sharing
 
@@ -50,6 +52,9 @@ Audio fuzzing and mutation tool to test mozilla's deepspeech speech to text mode
 - https://github.com/mozilla/DeepSpeech/releases/tag/v0.9.3
   - deepspeech-0.9.3-models.pbmm
   - deepspeech-0.9.3-models.scorer
+- Or use curl command:
+  - curl -LO https://github.com/mozilla/DeepSpeech/releases/download/v0.9.3/deepspeech-0.9.3-models.pbmm
+  - curl -LO https://github.com/mozilla/DeepSpeech/releases/download/v0.9.3/deepspeech-0.9.3-models.scorer
 
 ---
 
